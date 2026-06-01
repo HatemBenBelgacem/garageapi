@@ -4,9 +4,8 @@ from flask_sqlalchemy import SQLAlchemy
 app = Flask(__name__)
 app.secret_key = "iot_secure_secret_key"  # Für Flash-Nachrichten
 
-# PostgreSQL Verbindungskonfiguration
-# Format: postgresql://username:password@host:port/database_name
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:dein_passwort@localhost:5432/kennzeichen_db'
+# SQLite Konfiguration: Erstellt eine Datei "kennzeichen.db" im selben Ordner
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kennzeichen.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -24,7 +23,7 @@ class Kennzeichen(db.Model):
         self.fahrzeug_halter = fahrzeug_halter.strip()
         self.notiz = notiz.strip()
 
-# Datenbank-Tabellen initialisieren (Erstellt die Tabelle, falls sie nicht existiert)
+# Datenbank-Tabellen initialisieren (Erstellt die Datei/Tabelle, falls sie nicht existiert)
 with app.app_context():
     db.create_all()
 
@@ -39,7 +38,7 @@ def index():
         if not platte or not halter:
             flash('Bitte Kennzeichen und Halter angeben!', 'error')
         else:
-            existiert = Kennzeichen.query.filter_by(platte=platte.upper()).first()
+            existiert = Kennzeichen.query.filter_by(platte=platte.upper().strip()).first()
             if existiert:
                 flash('Dieses Kennzeichen existiert bereits!', 'error')
             else:
@@ -55,7 +54,7 @@ def index():
 # ROUTE: Bearbeiten
 @app.route('/edit/<int:id>', methods=['POST'])
 def edit(id):
-    eintrag = Kennzeichen.query.get_or_transform(id) # get_or_404 alternativ
+    # Der Fehler get_or_transform wurde entfernt
     eintrag = db.session.get(Kennzeichen, id)
     
     if eintrag:
