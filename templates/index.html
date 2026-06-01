@@ -9,18 +9,16 @@
 <body class="bg-slate-50 font-sans text-slate-800">
 
     <div class="max-w-6xl mx-auto px-4 py-8">
-        <!-- Header -->
         <header class="flex justify-between items-center mb-8 border-b border-slate-200 pb-4">
             <div>
                 <h1 class="text-3xl font-bold text-slate-900 tracking-tight">IoT Smart Gate</h1>
-                <p class="text-sm text-slate-500">Zentrales Kennzeichen-Management & Autorisierung (inkl. Blacklist-Sperre)</p>
+                <p class="text-sm text-slate-500">Zentrales Kennzeichen-Management & Autorisierung</p>
             </div>
             <div class="bg-emerald-500 text-white px-3 py-1 rounded-full text-xs font-semibold animate-pulse">
                 System Online
             </div>
         </header>
 
-        <!-- Flash Nachrichten -->
         {% with messages = get_flashed_messages(with_categories=true) %}
           {% if messages %}
             {% for category, message in messages %}
@@ -31,10 +29,8 @@
           {% endif %}
         {% endwith %}
 
-        <!-- Hauptbereich -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
             
-            <!-- Linke Spalte: Registrierungs-Formular -->
             <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-fit">
                 <h2 class="text-xl font-semibold mb-4 text-slate-900">Neues Fahrzeug registrieren</h2>
                 <form action="/" method="POST" class="space-y-4">
@@ -54,10 +50,10 @@
                                class="w-full px-4 py-2 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
                     <div class="flex items-center pt-2">
-                        <input type="checkbox" id="add_gesperrt" name="gesperrt" value="true"
-                               class="w-4 h-4 text-red-600 border-slate-300 rounded focus:ring-red-500">
-                        <label for="add_gesperrt" class="ml-2 text-sm font-semibold text-red-600 cursor-pointer">
-                            Direkt als GESPERRT eintragen
+                        <input type="checkbox" id="add_aktiv" name="aktiv" value="true" checked
+                               class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500">
+                        <label for="add_aktiv" class="ml-2 text-sm font-semibold text-emerald-600 cursor-pointer">
+                            Fahrzeug direkt aktivieren (Standard)
                         </label>
                     </div>
                     <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl transition duration-200 shadow-sm">
@@ -66,7 +62,6 @@
                 </form>
             </div>
 
-            <!-- Rechte Spalte: Tabelle der Fahrzeuge -->
             <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
                 <div class="p-6 border-b border-slate-100">
                     <h2 class="text-xl font-semibold text-slate-900">Registrierte Kennzeichen ({{ kennzeichen_liste|length }})</h2>
@@ -85,7 +80,7 @@
                         </thead>
                         <tbody class="divide-y divide-slate-100">
                             {% for kz in kennzeichen_liste %}
-                            <tr class="hover:bg-slate-50/70 transition {% if kz.gesperrt %} bg-red-50/40 {% endif %}">
+                            <tr class="hover:bg-slate-50/70 transition {% if not kz.aktiv %} bg-red-50/40 {% endif %}">
                                 <form action="/edit/{{ kz.id }}" method="POST">
                                     <td class="p-4">
                                         <input type="text" name="platte" value="{{ kz.platte }}" class="font-mono font-bold bg-slate-100 border border-transparent focus:border-blue-500 rounded px-2 py-1 text-sm uppercase w-32">
@@ -96,13 +91,12 @@
                                     <td class="p-4">
                                         <input type="text" name="notiz" value="{{ kz.notiz }}" class="text-sm text-slate-500 bg-transparent border border-transparent focus:border-blue-500 rounded px-2 py-1 w-full">
                                     </td>
-                                    <!-- NEU: Status-Checkbox direkt in der Zeile editierbar -->
                                     <td class="p-4 whitespace-nowrap">
                                         <label class="inline-flex items-center cursor-pointer">
-                                            <input type="checkbox" name="gesperrt" value="true" {% if kz.gesperrt %}checked{% endif %}
-                                                   class="w-4 h-4 text-red-600 border-slate-300 rounded focus:ring-red-500">
-                                            <span class="ml-2 text-xs font-bold {% if kz.gesperrt %} text-red-600 {% else %} text-emerald-600 {% endif %}">
-                                                {% if kz.gesperrt %}Gesperrt{% else %}Aktiv{% endif %}
+                                            <input type="checkbox" name="aktiv" value="true" {% if kz.aktiv %}checked{% endif %}
+                                                   class="w-4 h-4 text-emerald-600 border-slate-300 rounded focus:ring-emerald-500">
+                                            <span class="ml-2 text-xs font-bold {% if kz.aktiv %} text-emerald-600 {% else %} text-red-600 {% endif %}">
+                                                {% if kz.aktiv %}Aktiv{% else %}Gesperrt{% endif %}
                                             </span>
                                         </label>
                                     </td>
@@ -130,7 +124,6 @@
             </div>
         </div>
 
-        <!-- IoT Scan-Historie -->
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
                 <h2 class="text-xl font-semibold text-slate-900">Scan-Historie (Letzte IoT-Aktivitäten)</h2>

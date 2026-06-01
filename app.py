@@ -5,8 +5,8 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = "iot_secure_secret_key"  # Für Flash-Nachrichten
 
-# SQLite Verbindungskonfiguration
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kennzeichen.db'
+# SQLite Verbindungskonfiguration (v3 zur sauberen Aktiv-Logik-Übernahme)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///kennzeichen_v3.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -15,27 +15,27 @@ db = SQLAlchemy(app)
 # DATENMODELLE (DATENBANK-TABELLEN)
 # ==============================================================================
 
-# Tabelle 1: Registrierte Fahrzeuge (jetzt mit Sperr-Funktion)
+# Tabelle 1: Registrierte Fahrzeuge (jetzt mit standardmäßigem Aktiv-Status)
 class Kennzeichen(db.Model):
     __tablename__ = 'kennzeichen'
     id = db.Column(db.Integer, primary_key=True)
     platte = db.Column(db.String(20), unique=True, nullable=False)
     fahrzeug_halter = db.Column(db.String(100), nullable=False)
     notiz = db.Column(db.String(200), nullable=True)
-    gesperrt = db.Column(db.Boolean, default=False, nullable=False)  # NEU: Sperrstatus
+    aktiv = db.Column(db.Boolean, default=True, nullable=False)  # Standardmäßig AKTIV (True)
 
-    def __init__(self, platte, fahrzeug_halter, notiz, gesperrt=False):
+    def __init__(self, platte, fahrzeug_halter, notiz, aktiv=True):
         self.platte = platte.upper().strip()
         self.fahrzeug_halter = fahrzeug_halter.strip()
         self.notiz = notiz.strip()
-        self.gesperrt = gesperrt
+        self.aktiv = aktiv
 
-# Tabelle 2: Scan-Historie
+# Tabelle 2: Scan-Historie (Logbuch für IoT-Abfragen)
 class ScanHistory(db.Model):
     __tablename__ = 'scan_history'
     id = db.Column(db.Integer, primary_key=True)
     platte = db.Column(db.String(20), nullable=False)
-    status = db.Column(db.String(20), nullable=False)  # 'Angenommen', 'Abgelehnt' oder 'Gesperrt'
+    status = db.Column(db.String(20), nullable=False)  # 'Angenommen', 'Gesperrt' oder 'Abgelehnt'
     zeitstempel = db.Column(db.DateTime, default=datetime.now)
 
     def __init__(self, platte, status):
@@ -56,8 +56,8 @@ def index():
         platte = request.form['platte']
         halter = request.form['halter']
         notiz = request.form['notiz']
-        # Wenn eine Checkbox im Formular nicht angeklickt wird, sendet HTML sie gar nicht mit.
-        gesperrt = 'gesperrt' in request.form 
+        # Prüft, ob das "aktiv"-Häkchen gesetzt ist (standardmäßig ja)
+        aktiv = 'aktiv' in request.form 
 
         if not platte or not halter:
             flash('Bitte Kennzeichen und Halter angeben!', 'error')
@@ -66,12 +66,13 @@ def index():
             if existiert:
                 flash('Dieses Kennzeichen existiert bereits!', 'error')
             else:
-                neues_kennzeichen = Kennzeichen(platte, halter, notiz, gesperrt=gesperrt)
+                neues_kennzeichen = Kennzeichen(platte, halter, notiz, aktiv=aktiv)
                 db.session.add(neues_kennzeichen)
                 db.session.commit()
                 flash('Kennzeichen erfolgreich hinzugefügt!', 'success')
         return redirect(url_for('index'))
 
+    # Daten für das Dashboard laden
     alle_kennzeichen = Kennzeichen.query.order_by(Kennzeichen.id.desc()).all()
     gesamte_historie = ScanHistory.query.order_by(ScanHistory.zeitstempel.desc()).all()
     
@@ -85,7 +86,7 @@ def edit(id):
         eintrag.platte = request.form['platte'].upper().strip()
         eintrag.fahrzeug_halter = request.form['halter'].strip()
         eintrag.notiz = request.form['notiz'].strip()
-        eintrag.gesperrt = 'gesperrt' in request.form  # Aktualisiert den Sperrstatus aus der Tabelle
+        eintrag.aktiv = 'aktiv' in request.form  # Aktualisiert den Aktiv-Status
         
         db.session.commit()
         flash('Eintrag erfolgreich aktualisiert!', 'success')
@@ -101,7 +102,7 @@ def delete(id):
     return redirect(url_for('index'))
 
 # ==============================================================================
-# ERWEITERTE IOT-API ROUTE FÜR DEN RASPBERRY PI
+# IOT-API ROUTE FÜR DEN RASPBERRY PI
 # ==============================================================================
 @app.route('/api/check', methods=['POST'])
 def check_kennzeichen():
@@ -113,8 +114,8 @@ def check_kennzeichen():
     eintrag = Kennzeichen.query.filter_by(platte=gesuchte_platte).first()
     
     if eintrag:
-        if eintrag.gesperrt:
-            # FALL 1: Kennzeichen existiert, ist aber explizit GESPERRT
+        if not eintrag.aktiv:
+            # FALL 1: Kennzeichen registriert, aber explizit INAKTIV (Gesperrt)
             neuer_log = ScanHistory(platte=gesuchte_platte, status='Gesperrt')
             db.session.add(neuer_log)
             db.session.commit()
@@ -122,10 +123,10 @@ def check_kennzeichen():
             return jsonify({
                 'status': 'success',
                 'authorized': False,
-                'message': 'Zutritt verweigert: Dieses Fahrzeug wurde gesperrt.'
+                'message': 'Zutritt verweigert: Dieses Fahrzeug ist gesperrt.'
             }), 200
         else:
-            # FALL 2: Kennzeichen existiert und ist AKTIV
+            # FALL 2: Kennzeichen registriert und AKTIV
             neuer_log = ScanHistory(platte=gesuchte_platte, status='Angenommen')
             db.session.add(neuer_log)
             db.session.commit()
