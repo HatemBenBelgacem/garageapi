@@ -1,0 +1,54 @@
+import os
+
+# --- README for GarageAPI ---
+readme_api = """# 🌐 IoT Smart Gate - Backend & Web Dashboard (GarageAPI)
+
+Dieses Repository enthält das zentrale Management-System für das IoT Smart Gate Projekt. Es handelt sich um eine leichtgewichtige Flask-Webanwendung, die als Backend für die Edge-Geräte (Raspberry Pi) dient und ein benutzerfreundliches Dashboard zur Verwaltung von Kennzeichen bereitstellt.
+
+## ✨ Features
+* **Zentrales Dashboard:** Übersichtliche Weboberfläche (gestylt mit Tailwind CSS) zur Verwaltung der Zugangsberechtigungen.
+* **Fahrzeug-Management:** Hinzufügen, Bearbeiten, Deaktivieren und Löschen von Nummernschildern.
+* **Scan-Historie:** Live-Protokollierung aller Scan-Versuche (Angenommen, Gesperrt, Abgelehnt) der Edge-Geräte.
+* **REST API:** Dedizierter Endpoint (`/api/check`) für die sichere und schnelle Kommunikation mit dem Raspberry Pi.
+* **SQLite Datenbank:** Unkomplizierte, lokale Datenhaltung.
+
+## 🛠️ Technologien
+* Python 3
+* Flask & Flask-SQLAlchemy
+* SQLite (v3)
+* Tailwind CSS (via CDN)
+
+## 🚀 Installation & Start
+
+1. **Abhängigkeiten installieren:**
+   Stelle sicher, dass Python 3 installiert ist. Installiere dann die benötigten Pakete:
+
+
+Server starten:
+Führe das Hauptskript aus. Die Datenbank (kennzeichen_v3.db) wird beim ersten Start automatisch im instance/ Ordner erstellt.
+
+Bash
+python app.py
+Zugriff:
+Das Dashboard ist nun unter http://localhost:5001 (bzw. der IP deines Servers) erreichbar. Die API lauscht auf allen Interfaces (0.0.0.0).
+
+📡 API Dokumentation
+Endpoint: POST /api/check
+
+Request Body (JSON):
+
+JSON
+{
+  "platte": "B-MW-2026"
+}
+Response (Erfolgreich/Autorisiert):
+
+JSON
+{
+  "status": "success",
+  "authorized": true,
+  "platte": "B-MW-2026",
+  "halter": "Max Mustermann",
+  "notiz": "Mitarbeiter"
+}
+"""
