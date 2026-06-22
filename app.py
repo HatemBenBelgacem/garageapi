@@ -151,4 +151,5 @@ def check_kennzeichen():
         }), 200
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    # HIER IST DIE WICHTIGE ÄNDERUNG: host='0.0.0.0'
+    app.run(host='0.0.0.0', port=5001, debug=True)
